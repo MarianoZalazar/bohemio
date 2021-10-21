@@ -55,7 +55,7 @@ data = ['area','comuna', 'poblacion', 'valorxm2', 'cant_escuelas', 'cant_hospita
 data_mult = ['BARRIO']+data
 
 app = Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
-
+server = app.server
 app.title='Bohemio - Conocé tu Ciudad'
 
 
