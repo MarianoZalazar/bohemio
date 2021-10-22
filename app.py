@@ -21,7 +21,7 @@ bd=os.environ.get('DB')
 
 geojson = requests.get('https://cdn.buenosaires.gob.ar/datosabiertos/datasets/barrios/barrios.geojson').json()
 uri = f'mongodb+srv://{user}:{password}@{server}/{bd}?retryWrites=true&w=majority&ssl=true&ssl_cert_reqs=CERT_NONE'
-data = list(pymongo.MongoClient(uri)['bohemio']['datos_barrio_v2'].find())
+data = list(pymongo.MongoClient(uri)['bohemio']['datos_barrios'].find())
 df_scores = pd.DataFrame.from_records(data)
 
 #defino un diccionario que contiene las etiquetas de cada indicador.
@@ -114,7 +114,7 @@ checklist = dbc.Card([
 
 
 dropdown1 = html.Div([
-                     dbc.Row(dbc.Col(html.H5('Selecciona el barrio'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
+                     dbc.Row(dbc.Col(html.H5('Seleccioná el barrio'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
                      dbc.Row([
                               dbc.Col(
                                 dcc.Dropdown(id='dropdown-1', options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO')
