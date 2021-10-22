@@ -53,11 +53,11 @@ score_labels_inv = {
 
 data_labels ={'densidad_poblacion':'Poblacion por KM2', 
               'valorxm2':'Valor de la Propiedad por M2 USD', 
-              'centros_ed_x_km2': 'Cantidad de escuelas por KM2', 
+              'centros_ed_x_km2': 'Cantidad de Escuelas por KM2', 
               'centrosalud_x_km2':'Cantidad de Centros de Salud por KM2', 
-              'densidad_bicis':'Cantidad de Estaciones de Bicicletas', 
-              'densidad_stc':'Cantidad de Estaciones de Subte/Premetro/Tren/Colectivo', 
-              'densidad_verde':'M2 de Espacios Verdes', 
+              'densidad_bicis':'Cantidad de Estaciones de Bicicletas por KM2', 
+              'densidad_stc':'Cantidad de Estaciones de Subte/Premetro/Tren/Colectivo por KM2', 
+              'densidad_verde':'M2 de Espacios Verdes por KM2', 
               'grado_delincuencia':'Indice de Delincuencia', 
               'habitantes_bp':'Cantidad de Personas en Barrios Populares'}
 
