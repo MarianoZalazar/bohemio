@@ -9,6 +9,7 @@ from dash import dcc
 from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input,Output,State, ALL
+import plotly.graph_objects as go
 import os
 
 load_dotenv()
@@ -20,7 +21,7 @@ bd=os.environ.get('DB')
 
 geojson = requests.get('https://cdn.buenosaires.gob.ar/datosabiertos/datasets/barrios/barrios.geojson').json()
 uri = f'mongodb+srv://{user}:{password}@{server}/{bd}?retryWrites=true&w=majority&ssl=true&ssl_cert_reqs=CERT_NONE'
-data = list(pymongo.MongoClient(uri)['bohemio']['datos_barrio'].find())
+data = list(pymongo.MongoClient(uri)['bohemio']['datos_barrio_v2'].find())
 df_scores = pd.DataFrame.from_records(data)
 
 #defino un diccionario que contiene las etiquetas de cada indicador.
@@ -29,7 +30,7 @@ score_labels = {
     'score_valuacion':'Valuación',
     'score_educacion':'Educación',
     'score_salud':'Salud',
-    'score_transporte':'Accesibilidad/Transporte',
+    'score_transporte':'Accesibilidad',
     'score_verde':'Espacios Verdes',
     'score_delitos':'Seguridad',
     'score_accidentes':'Accidentes',
@@ -50,11 +51,23 @@ score_labels_inv = {
     'score_barriospop_inv':'Barrios Populares',
 }
 
+data_labels ={'densidad_poblacion':'Poblacion por KM2', 
+              'valorxm2':'Valor de la Propiedad por M2 USD', 
+              'centros_ed_x_km2': 'Cantidad de escuelas por KM2', 
+              'centrosalud_x_km2':'Cantidad de Centros de Salud por KM2', 
+              'densidad_bicis':'Cantidad de Estaciones de Bicicletas', 
+              'densidad_stc':'Cantidad de Estaciones de Subte/Premetro/Tren/Colectivo', 
+              'densidad_verde':'M2 de Espacios Verdes', 
+              'grado_delincuencia':'Indice de Delincuencia', 
+              'habitantes_bp':'Cantidad de Personas en Barrios Populares'}
+
 #listado de scores
-data = ['area','comuna', 'poblacion', 'valorxm2', 'cant_escuelas', 'cant_hospitales', 'cant_bicis', 'cant_estaciones', 'm2verdes', 'cant_comis', 'ind_delincuencia', 'cant_bp']
+data = ['area','comuna', 'poblacion', 'valorxm2', 'cant_escuelas', 'cant_hospitales', 'cant_anclajes_bici', 'cant_estaciones_stc', 'm2verdes', 'comisarias', 'grado_delincuencia', 'cant_bp']
 data_mult = ['BARRIO']+data
 
-app = Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
+app = Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True,meta_tags=[
+        {"name": "viewport", "content": "width=device-width, initial-scale=1"},
+    ])
 server = app.server
 app.title='Bohemio - Conocé tu Ciudad'
 
@@ -63,10 +76,10 @@ navbar=dbc.Navbar([
         html.A(
             dbc.Row(
                 [
-                    dbc.Col(html.Img(src='https://i.ibb.co/TWFfpmG/Group-2.png', height="60rem")),
+                    dbc.Col(html.Img(src='https://i.ibb.co/TWFfpmG/Group-2.png', height="60em")),
                 ],
                 align="center",
-            )
+            ), href='/page-1'
         ),
         html.Div(
             [
@@ -78,7 +91,7 @@ navbar=dbc.Navbar([
         
     ],
     color='#FFFFF',
-    className='pt-4'
+    className='pt-4',
     )
 
 indicadores = dbc.Card([
@@ -100,8 +113,8 @@ checklist = dbc.Card([
             ], body=True)   
 
 
-dropdown = html.Div([
-                     dbc.Row(dbc.Col(html.H5('Selecciona el barrio'), style={'color':'#0E4666'}, md=12)),
+dropdown1 = html.Div([
+                     dbc.Row(dbc.Col(html.H5('Selecciona el barrio'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
                      dbc.Row([
                               dbc.Col(
                                 dcc.Dropdown(id='dropdown-1', options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO')
@@ -110,8 +123,27 @@ dropdown = html.Div([
                      
 ])
 
+dropdown2 = html.Div([
+                        dbc.Row(dbc.Col(html.H5('Compará los datos', className='pt-3 text-center', style={'color':'#0E4666'}))),
+                        dbc.Row([dbc.Col(
+                            dcc.Dropdown(id='dropdown-2', options=[{'value':i,'label':data_labels.get(i)} for i in data_labels], 
+                                         value='densidad_poblacion',placeholder="Seleccionar indicador", clearable=False,style={'color':'#0E4666','font-size':'14px'})
+                        )], className='pt-3')
+              ])
+
+
+inf1 = dbc.Col([dbc.Row([dbc.Col(dropdown1, sm=12)]),
+        dbc.Row([dbc.Col([dcc.Graph(id='fig3')], sm=12, className='pt-4')])
+        
+        ], sm=6)
+inf2 = dbc.Col([
+    dbc.Row([dbc.Col(dropdown2, sm=12)]),
+    dbc.Row([dbc.Col(dcc.Graph(id='fig4'), sm=12, className='pt-4')])
+    
+],sm=6)
+
 page_1 = dbc.Container([
-    navbar,
+    dbc.Row([dbc.Col(navbar, sm=12)]),
     html.Hr(),
     dbc.Row([
         dbc.Col([
@@ -128,29 +160,33 @@ page_1 = dbc.Container([
 
 
 page_2 = dbc.Container([
-    navbar,
+    dbc.Row([dbc.Col(navbar, sm=12)]),
     html.Hr(),
     dbc.Row([
-        dbc.Col(indicadores, md=2),
-        dbc.Col(sliders, md=4,className='text-center'),
+        dbc.Col(indicadores, md=2, sm=6),
+        dbc.Col(sliders, md=4,sm=6,className='text-center'),
         dbc.Col(
                  [
                   dbc.Card([ 
                       dcc.Graph(id='fig2')])
-                  ], md=6)
+                  ], md=6, sm=12)
     ]),
 ])
 
 
 page_3 = dbc.Container([
-                        navbar,
+                        dbc.Row([dbc.Col(navbar, sm=12)]),
                         html.Hr(),
-                        dropdown,
                         dbc.Row(
-                            dbc.Card([
-                                  dcc.Graph(id='fig3')
-                        ]), className='pt-4'
-                        )
+                            [
+                            dbc.Col(
+                                dbc.Row([
+                                    inf1,
+                                    inf2
+                                ]), sm=12
+                                
+                            )
+                            ])
                         
 ])
 
@@ -178,12 +214,12 @@ def display_grafico(seleccion_score):
     elif len(seleccion_score) > 1:
             df_dinamico = df_scores.loc[:, data_mult+seleccion_score]
             df_dinamico['suma_scores'] = df_dinamico[seleccion_score].sum(axis = 1, numeric_only=True)
-            df_dinamico['score_resultado'] = pd.qcut(df_dinamico['suma_scores'], q = 5, labels=['1','2','3','4','5'])
+            df_dinamico['score_resultado'] = pd.qcut(df_dinamico['suma_scores'], q = 4, labels=['1','2','3','4'])
      
             fig = px.choropleth(df_dinamico, geojson=geojson, color=df_dinamico.score_resultado,
                                 locations="BARRIO", featureidkey="properties.BARRIO",
-                                projection="mercator", color_discrete_sequence= ['#7AC45C', '#AEEB5A','#73D2BF','#FC5845', '#C40186'],
-                                category_orders={'score_resultado':['5','4','3','2','1']}, labels = {'score_resultado':'Ind. Resultado'}, hover_data=data 
+                                projection="mercator", color_discrete_sequence= ['#7AC45C', '#AEEB5A','#73D2BF', '#C40186'],
+                                category_orders={'score_resultado':['4','3','2','1']}, labels = {'score_resultado':'Ind. Resultado'}, hover_data=data 
                                 )
             fig.update_geos(fitbounds="locations", visible=False)
             fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
@@ -250,6 +286,21 @@ def polar(val1):
     fig={}
   return fig
 
+@app.callback(
+    Output('fig4', 'figure'),
+    Input('dropdown-2','value')
+)
+def display(tema):
+    dfl = df_scores.nlargest(3,tema)[["BARRIO",tema]]
+    dfs = df_scores.nsmallest(3,tema)[["BARRIO",tema]]
+    fig = go.Figure(
+        data = [
+        go.Bar(name="Lo mas",   x=dfl["BARRIO"], y=dfl[tema]),
+        go.Bar(name="Los menos",x=dfs["BARRIO"], y=dfs[tema])],
+        layout=go.Layout(title=data_labels[tema])
+    )
+    return fig
+
 
 @app.callback(Output('page-content', 'children'),
               Input('url', 'pathname'))
@@ -264,4 +315,4 @@ def display_page(pathname):
         return page_1
 
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(debug=True)
