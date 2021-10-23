@@ -85,7 +85,8 @@ navbar=dbc.Navbar([
             [
              dbc.NavItem(dbc.NavLink("Investigá", href="/page-1", style={'text-decoration':'None', 'color':'#0E4666'})),
              dbc.NavItem(dbc.NavLink("Buscá", href="/page-2", style={'text-decoration':'None', 'color':'#0E4666'})),
-             dbc.NavItem(dbc.NavLink("Informate", href="/page-3", style={'text-decoration':'None', 'color':'#0E4666'}))
+             dbc.NavItem(dbc.NavLink("Informate", href="/page-3", style={'text-decoration':'None', 'color':'#0E4666'})),
+             dbc.NavItem(dbc.NavLink("Compará", href="/page-4", style={'text-decoration':'None', 'color':'#0E4666'})),
             ],className="g-0 ps-5", style={'display':'flex'}
         )
         
@@ -112,7 +113,6 @@ checklist = dbc.Card([
                               value=list(score_labels)[:1], labelStyle={'display':'inline-block','color':'#0E4666'})
             ], body=True)   
 
-
 dropdown1 = html.Div([
                      dbc.Row(dbc.Col(html.H5('Seleccioná el barrio'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
                      dbc.Row([
@@ -122,6 +122,20 @@ dropdown1 = html.Div([
                      ], className='pt-3')
                      
 ])
+
+
+barrios = dbc.Card([
+                     dbc.Row(dbc.Col(html.H5('Seleccioná los barrios a comparar'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
+                     dbc.Row([
+                              dbc.Col(
+                                dcc.Dropdown(id='barrios-1', options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO'),sm=6
+                              ),
+                              dbc.Col(
+                                dcc.Dropdown(id='barrios-2', options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='CHACARITA'), sm=6
+                            )], className='p-3')
+                     
+])
+
 
 dropdown2 = html.Div([
                         dbc.Row(dbc.Col(html.H5('Compará los datos', className='pt-3 text-center', style={'color':'#0E4666'}))),
@@ -188,6 +202,25 @@ page_3 = dbc.Container([
                             )
                             ])
                         
+])
+
+page_4= dbc.Container([
+        dbc.Row([dbc.Col(navbar, sm=12)]),
+        html.Hr(),
+        dbc.Row([
+            dbc.Col(
+                barrios         
+            )
+        ]),
+        dbc.Row([
+            dbc.Col(
+                dbc.Card([ 
+                      dcc.Graph(id='fig5')]), sm=12       
+            )
+        ], className='pt-3')
+        
+    
+    
 ])
 
 app.layout = html.Div([
@@ -301,6 +334,33 @@ def display(tema):
     )
     return fig
 
+@app.callback(
+    Output('fig5', 'figure'),
+    Input('barrios-1', 'value'),
+    Input('barrios-2', 'value'),
+    
+)
+def multiple_polar(val1,val2):
+  if val1 is not None and val2 is not None:
+    df_drop1 = df_scores.loc[df_scores.BARRIO == (val1)][score_labels_inv.keys()].transpose().reset_index()
+    df_drop1['BARRIO'] = val1
+    df_drop1.columns = ["label","valor", 'barrio']
+    df_drop2 = df_scores.loc[df_scores.BARRIO == (val2)][score_labels_inv.keys()].transpose().reset_index()
+    df_drop2['BARRIO'] = val2
+    df_drop2.columns = ["label","valor", 'barrio']
+    
+    df_drop = pd.concat([
+        df_drop1,
+        df_drop2
+    ], axis=0).reset_index()
+    
+    df_drop["label"] = [i.split("_")[1].capitalize() for i in df_drop["label"]]
+    fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label, color=df_drop.barrio, width=500,line_close=True)
+  else:
+    fig={}
+  return fig
+
+
 
 @app.callback(Output('page-content', 'children'),
               Input('url', 'pathname'))
@@ -311,6 +371,8 @@ def display_page(pathname):
         return page_2
     elif pathname == '/page-3':
         return page_3
+    elif pathname == '/page-4':
+        return page_4
     else:
         return page_1
 
