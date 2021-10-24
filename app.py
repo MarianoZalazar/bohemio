@@ -51,7 +51,7 @@ score_labels_inv = {
     'score_barriospop_inv':'Barrios Populares',
 }
 
-data_labels ={'densidad_poblacion':'Poblacion por KM2', 
+data_labels ={'densidad_poblacion':'Población por KM2', 
               'valorxm2':'Valor de la Propiedad por M2 USD', 
               'centros_ed_x_km2': 'Cantidad de Escuelas por KM2', 
               'centrosalud_x_km2':'Cantidad de Centros de Salud por KM2', 
@@ -70,13 +70,13 @@ app = Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callba
     ])
 server = app.server
 app.title='Bohemio - Conocé tu Ciudad'
-
+app._favicon = 'logo.ico'
 
 navbar=dbc.Navbar([
         html.A(
             dbc.Row(
                 [
-                    dbc.Col(html.Img(src='https://i.ibb.co/TWFfpmG/Group-2.png', height="60em")),
+                    dbc.Col(html.Img(src='./assets/logo.svg', height="60em")),
                 ],
                 align="center",
             ), href='/page-1'
@@ -87,7 +87,7 @@ navbar=dbc.Navbar([
              dbc.NavItem(dbc.NavLink("Buscá", href="/page-2", style={'text-decoration':'None', 'color':'#0E4666'})),
              dbc.NavItem(dbc.NavLink("Informate", href="/page-3", style={'text-decoration':'None', 'color':'#0E4666'})),
              dbc.NavItem(dbc.NavLink("Compará", href="/page-4", style={'text-decoration':'None', 'color':'#0E4666'})),
-            ],className="g-0 ps-5", style={'display':'flex'}
+            ],className="g-0 ps-4", style={'display':'flex'}
         )
         
     ],
@@ -117,7 +117,7 @@ dropdown1 = html.Div([
                      dbc.Row(dbc.Col(html.H5('Seleccioná el barrio'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
                      dbc.Row([
                               dbc.Col(
-                                dcc.Dropdown(id='dropdown-1', options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO')
+                                dcc.Dropdown(id='dropdown-1', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO')
                               ),
                      ], className='pt-3')
                      
@@ -128,10 +128,10 @@ barrios = dbc.Card([
                      dbc.Row(dbc.Col(html.H5('Seleccioná los barrios a comparar'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
                      dbc.Row([
                               dbc.Col(
-                                dcc.Dropdown(id='barrios-1', options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO'),sm=6
+                                dcc.Dropdown(id='barrios-1', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO'),sm=6
                               ),
                               dbc.Col(
-                                dcc.Dropdown(id='barrios-2', options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='CHACARITA'), sm=6
+                                dcc.Dropdown(id='barrios-2', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='CHACARITA'), sm=6
                             )], className='p-3')
                      
 ])
@@ -147,12 +147,12 @@ dropdown2 = html.Div([
 
 
 inf1 = dbc.Col([dbc.Row([dbc.Col(dropdown1, sm=12)]),
-        dbc.Row([dbc.Col([dcc.Graph(id='fig3')], sm=12, className='pt-4')])
+        dbc.Row([dbc.Col([dcc.Graph(id='fig3', responsive=True)], sm=12, className='pt-4')])
         
         ], sm=6)
 inf2 = dbc.Col([
     dbc.Row([dbc.Col(dropdown2, sm=12)]),
-    dbc.Row([dbc.Col(dcc.Graph(id='fig4'), sm=12, className='pt-4')])
+    dbc.Row([dbc.Col(dcc.Graph(id='fig4', responsive=True), sm=12, className='pt-4')])
     
 ],sm=6)
 
@@ -165,9 +165,9 @@ page_1 = dbc.Container([
         ], md=4, sm=12),
         dbc.Col([
             dbc.Card([
-                html.H5('Barrios de CABA', style={'color':'#0E4666'}),
-                dcc.Graph(id='fig1')
-            ],body=True, style={"width": "40rem"})
+                html.H5('Barrios de CABA', style={'color':'#0E4666'}, className='pt-3 text-center'),
+                dcc.Graph(id='fig1', responsive=True)
+            ])
         ], md=8, sm=12)
     ]),
 ])
@@ -182,7 +182,7 @@ page_2 = dbc.Container([
         dbc.Col(
                  [
                   dbc.Card([ 
-                      dcc.Graph(id='fig2')])
+                      dcc.Graph(id='fig2', responsive=True)])
                   ], md=6, sm=12)
     ]),
 ])
@@ -215,7 +215,7 @@ page_4= dbc.Container([
         dbc.Row([
             dbc.Col(
                 dbc.Card([ 
-                      dcc.Graph(id='fig5')]), sm=12       
+                      dcc.Graph(id='fig5', responsive=True)]), sm=12, className='mx-auto'       
             )
         ], className='pt-3')
         
@@ -313,7 +313,7 @@ def polar(val1):
   if val1 is not None:
     df_drop = df_scores.loc[df_scores.BARRIO == (val1)][score_labels_inv.keys()].transpose().reset_index()
     df_drop.columns = ["label","valor"]
-    df_drop["label"] = [i.split("_")[1].capitalize() for i in df_drop["label"]]
+    df_drop["label"] = [score_labels_inv.get(i) for i in df_drop["label"]]
     fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label,width=500,line_close=True)
   else:
     fig={}
@@ -354,7 +354,7 @@ def multiple_polar(val1,val2):
         df_drop2
     ], axis=0).reset_index()
     
-    df_drop["label"] = [i.split("_")[1].capitalize() for i in df_drop["label"]]
+    df_drop["label"] = [score_labels_inv.get(i) for i in df_drop["label"]]
     fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label, color=df_drop.barrio, width=500,line_close=True)
   else:
     fig={}
