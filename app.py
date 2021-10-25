@@ -87,7 +87,7 @@ navbar=dbc.Navbar([
              dbc.NavItem(dbc.NavLink("Buscá", href="/page-2", style={'text-decoration':'None', 'color':'#0E4666'})),
              dbc.NavItem(dbc.NavLink("Informate", href="/page-3", style={'text-decoration':'None', 'color':'#0E4666'})),
              dbc.NavItem(dbc.NavLink("Compará", href="/page-4", style={'text-decoration':'None', 'color':'#0E4666'})),
-            ],className="g-0 ps-4", style={'display':'flex'}
+            ], style={'display':'flex'}
         )
         
     ],
@@ -117,7 +117,7 @@ dropdown1 = html.Div([
                      dbc.Row(dbc.Col(html.H5('Seleccioná el barrio'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
                      dbc.Row([
                               dbc.Col(
-                                dcc.Dropdown(id='dropdown-1', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO')
+                                dcc.Dropdown(id='dropdown-1', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO'), sm=12
                               ),
                      ], className='pt-3')
                      
@@ -146,7 +146,8 @@ dropdown2 = html.Div([
               ])
 
 
-inf1 = dbc.Col([dbc.Row([dbc.Col(dropdown1, sm=12)]),
+inf1 = dbc.Col([
+        dbc.Row([dbc.Col(dropdown1, sm=12)]),
         dbc.Row([dbc.Col([dcc.Graph(id='fig3', responsive=True)], sm=12, className='pt-4')])
         
         ], sm=6)
