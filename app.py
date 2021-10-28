@@ -45,7 +45,7 @@ score_labels_inv = {
     'score_salud':'Salud',
     'score_transporte':'Accesibilidad',
     'score_verde':'Espacios Verdes',
-    'score_delitos_inv':'Seguridad',
+    'score_delitos_inv':'Delitos',
     'score_accidentes_inv':'Accidentes',
     'score_esparcimiento':'Esparcimiento',
     'score_barriospop_inv':'Barrios Populares',
@@ -138,7 +138,7 @@ barrios = dbc.Card([
 
 
 dropdown2 = html.Div([
-                        dbc.Row(dbc.Col(html.H5('Compará los datos', className='pt-3 text-center', style={'color':'#0E4666'}))),
+                        dbc.Row(dbc.Col(html.H5('Conocé los datos', className='pt-3 text-center', style={'color':'#0E4666'}))),
                         dbc.Row([dbc.Col(
                             dcc.Dropdown(id='dropdown-2', options=[{'value':i,'label':data_labels.get(i)} for i in data_labels], 
                                          value='densidad_poblacion',placeholder="Seleccionar indicador", clearable=False,style={'color':'#0E4666','font-size':'14px'})
@@ -325,8 +325,8 @@ def polar(val1):
     Input('dropdown-2','value')
 )
 def display(tema):
-    dfl = df_scores.nlargest(3,tema)[["BARRIO",tema]]
-    dfs = df_scores.nsmallest(3,tema)[["BARRIO",tema]]
+    dfl = df_scores.nlargest(3,tema)[["BARRIO",tema]].sort_values(tema, ascending=False)
+    dfs = df_scores.nsmallest(3,tema)[["BARRIO",tema]].sort_values(tema, ascending=False)
     fig = go.Figure(
         data = [
         go.Bar(name="Lo mas",   x=dfl["BARRIO"], y=dfl[tema]),
@@ -345,10 +345,10 @@ def multiple_polar(val1,val2):
   if val1 is not None and val2 is not None:
     df_drop1 = df_scores.loc[df_scores.BARRIO == (val1)][score_labels_inv.keys()].transpose().reset_index()
     df_drop1['BARRIO'] = val1
-    df_drop1.columns = ["label","valor", 'barrio']
+    df_drop1.columns = ["label","valor", 'Barrio']
     df_drop2 = df_scores.loc[df_scores.BARRIO == (val2)][score_labels_inv.keys()].transpose().reset_index()
     df_drop2['BARRIO'] = val2
-    df_drop2.columns = ["label","valor", 'barrio']
+    df_drop2.columns = ["label","valor", 'Barrio']
     
     df_drop = pd.concat([
         df_drop1,
@@ -356,7 +356,7 @@ def multiple_polar(val1,val2):
     ], axis=0).reset_index()
     
     df_drop["label"] = [score_labels_inv.get(i) for i in df_drop["label"]]
-    fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label, color=df_drop.barrio, width=500,line_close=True)
+    fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label, color=df_drop.Barrio, width=500,line_close=True)
   else:
     fig={}
   return fig
