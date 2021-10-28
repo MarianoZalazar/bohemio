@@ -58,7 +58,7 @@ data_labels ={'densidad_poblacion':'Población por KM2',
               'densidad_bicis':'Cantidad de Estaciones de Bicicletas por KM2', 
               'densidad_stc':'Cantidad de Estaciones de Subte/Premetro/Tren/Colectivo por KM2', 
               'densidad_verde':'M2 de Espacios Verdes por KM2', 
-              'grado_delincuencia':'Indice de Delincuencia', 
+              'grado_delincuencia':'Índice de Delincuencia', 
               'habitantes_bp':'Cantidad de Personas en Barrios Populares'}
 
 #listado de scores
