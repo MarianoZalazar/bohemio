@@ -11,6 +11,7 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input,Output,State, ALL
 import plotly.graph_objects as go
 import os
+import plotly.figure_factory as ff
 
 load_dotenv()
 
@@ -23,19 +24,21 @@ geojson = requests.get('https://cdn.buenosaires.gob.ar/datosabiertos/datasets/ba
 uri = f'mongodb+srv://{user}:{password}@{server}/{bd}?retryWrites=true&w=majority&ssl=true&ssl_cert_reqs=CERT_NONE'
 data = list(pymongo.MongoClient(uri)['bohemio']['datos_barrios'].find())
 df_scores = pd.DataFrame.from_records(data)
+df_scores.rename(columns={'area': 'superficie'}, inplace=True)
+df_scores['m2verdes'] =[round(i) for i in df_scores.m2verdes]
 
 #defino un diccionario que contiene las etiquetas de cada indicador.
 score_labels = {
-    'score_poblacion':'Población',
-    'score_valuacion':'Valuación',
-    'score_educacion':'Educación',
-    'score_salud':'Salud',
-    'score_transporte':'Accesibilidad',
-    'score_verde':'Espacios Verdes',
-    'score_delitos':'Seguridad',
-    'score_accidentes':'Accidentes',
-    'score_esparcimiento':'Esparcimiento',
-    'score_barriospop':'Barrios Populares',
+    'score_poblacion':'Población | Cant. Habitantes / Superficie',
+    'score_valuacion':'Valuación | Valor Venta por M2 en USD',
+    'score_educacion':'Educación | Cant. Escuelas / Densidad Poblacional',
+    'score_salud':'Salud | Cant. Hospitales / Densidad Poblacional',
+    'score_transporte':'Accesibilidad | Cant. Estaciones de Transporte Público / Superficie',
+    'score_verde':'Espacios Verdes | M2 de Espacios Verdes / Superficie',
+    'score_delitos':'Seguridad | Índice de Delincuencia',
+    'score_accidentes':'Accidentes | Siniestros viales / (Superficie * Cant. Hab)',
+    'score_esparcimiento':'Esparcimiento | Cant. Locales Gastronómicos / Superficie',
+    'score_barriospop':'Barrios Populares | Cant. Habitantes de Barrios Populares',
 }
 
 score_labels_inv = {
@@ -51,19 +54,21 @@ score_labels_inv = {
     'score_barriospop_inv':'Barrios Populares',
 }
 
-data_labels ={'densidad_poblacion':'Población por KM2', 
-              'valorxm2':'Valor de la Propiedad por M2 USD', 
-              'centros_ed_x_km2': 'Cantidad de Escuelas por KM2', 
-              'centrosalud_x_km2':'Cantidad de Centros de Salud por KM2', 
-              'densidad_bicis':'Cantidad de Estaciones de Bicicletas por KM2', 
-              'densidad_stc':'Cantidad de Estaciones de Subte/Premetro/Tren/Colectivo por KM2', 
-              'densidad_verde':'M2 de Espacios Verdes por KM2', 
+data_labels ={'densidad_poblacion':'Cant. Habitantes / Superficie', 
+              'valorxm2':'Valor Venta por M2 en USD', 
+              'centros_ed_x_densidad_pobl': 'Cant. Escuelas / Densidad Poblacional', 
+              'centrosalud_x_densidad_pobl':'Cant. Hospitales / Densidad Poblacional', 
+              'densidad_stc':'Cant. Estaciones de Transporte Público / Superficie', 
+              'densidad_verde':'M2 de Espacios Verdes / Superficie', 
               'grado_delincuencia':'Índice de Delincuencia', 
-              'habitantes_bp':'Cantidad de Personas en Barrios Populares'}
+              'habitantes_bp':'Cant. Personas en Barrios Populares'}
 
 #listado de scores
-data = ['area','comuna', 'poblacion', 'valorxm2', 'cant_escuelas', 'cant_hospitales', 'cant_anclajes_bici', 'cant_estaciones_stc', 'm2verdes', 'comisarias', 'grado_delincuencia', 'cant_bp']
+data = ['superficie','comuna', 'poblacion', 'valorxm2', 'cant_escuelas', 'cant_hospitales', 'cant_estaciones_stc', 'm2verdes', 'grado_delincuencia', 'cant_bp']
 data_mult = ['BARRIO']+data
+escala = ['Muy Alto', 'Alto', 'Medio', 'Bajo', 'Muy Bajo']
+escala_dict = {'1':'Muy Bajo', '2':'Bajo', '3':'Medio', '4':'Alto', '5':'Muy Alto'}
+#['#7AC45C', '#AEEB5A','#73D2BF','#FC5845', '#C40186']
 
 app = Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True,meta_tags=[
         {"name": "viewport", "content": "width=device-width, initial-scale=1"},
@@ -96,33 +101,33 @@ navbar=dbc.Navbar([
     )
 
 indicadores = dbc.Card([
-                        html.H5('Seleccionar Indicador', style={'color':'#0E4666'}),
+                        html.H5('Seleccioná Indicador', style={'color':'#0E4666'}),
                         dbc.Checklist(id='indicador', options=[{'value':i,'label':score_labels_inv.get(i)} for i in score_labels_inv], value=[],className='pt-2', style={'color':'#0E4666'})
               ],body=True)
-
+titulo=html.H5('Elegí tu preferencia', className='pb-2')
 sliders = dbc.Card(
-                   children=[], className='pt-4 pb-4', id='card', style={'color':'#0E4666'}
+                   children=[titulo], className='pt-4 pb-4', id='card', style={'color':'#0E4666'}
                    )
-
 
 
 checklist = dbc.Card([
                 html.H5('Seleccionar indicador', style={'color':'#0E4666'}),
                 html.P('Agregue todos los indicadores que desee relacionar y visualizar en el Mapa.', style={'color':'#0E4666'}),
                 dbc.Checklist(id='seleccion_score', options=[{'value':i,'label':score_labels.get(i)} for i in score_labels],
-                              value=list(score_labels)[:1], labelStyle={'display':'inline-block','color':'#0E4666'})
+                              value=list(score_labels)[:1], labelStyle={'display':'inline-block','color':'#0E4666', 'font-size':'12px', 'padding-bottom':'10px'})
             ], body=True)   
 
-dropdown1 = html.Div([
-                     dbc.Row(dbc.Col(html.H5('Seleccioná el barrio'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
-                     dbc.Row([
-                              dbc.Col(
-                                dcc.Dropdown(id='dropdown-1', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO'), sm=12
-                              ),
-                     ], className='pt-3')
-                     
-])
 
+dropdown1 = html.Div([
+                        dbc.Row(dbc.Col(html.H5('Conocé los datos', className='pt-3 text-center', style={'color':'#0E4666'}))),
+                        dbc.Row([dbc.Col(
+                            dcc.Dropdown(id='dropdown-1', options=[{'value':i,'label':data_labels.get(i)} for i in data_labels], 
+                                         value='densidad_poblacion',placeholder="Seleccionar indicador", clearable=False,style={'color':'#0E4666','font-size':'18px'})
+                        ),
+                                 dbc.Col(
+                                    dcc.Dropdown(id='barrio', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO'),sm=6
+                                )], className='pt-3')
+              ])
 
 barrios = dbc.Card([
                      dbc.Row(dbc.Col(html.H5('Seleccioná los barrios a comparar'), className='pt-3 text-center',style={'color':'#0E4666'}, md=12)),
@@ -137,24 +142,10 @@ barrios = dbc.Card([
 ])
 
 
-dropdown2 = html.Div([
-                        dbc.Row(dbc.Col(html.H5('Conocé los datos', className='pt-3 text-center', style={'color':'#0E4666'}))),
-                        dbc.Row([dbc.Col(
-                            dcc.Dropdown(id='dropdown-2', options=[{'value':i,'label':data_labels.get(i)} for i in data_labels], 
-                                         value='densidad_poblacion',placeholder="Seleccionar indicador", clearable=False,style={'color':'#0E4666','font-size':'14px'})
-                        )], className='pt-3')
-              ])
-
-
 inf1 = dbc.Col([
-        dbc.Row([dbc.Col(dropdown1, sm=12)]),
-        dbc.Row([dbc.Col([dcc.Graph(id='fig3', responsive=True)], sm=12, className='pt-4')])
-        
-        ], sm=6)
+    dcc.Graph(id='fig3', responsive=True)], sm=6)
 inf2 = dbc.Col([
-    dbc.Row([dbc.Col(dropdown2, sm=12)]),
-    dbc.Row([dbc.Col(dcc.Graph(id='fig4', responsive=True), sm=12, className='pt-4')])
-    
+    dcc.Graph(id='fig4', responsive=True)
 ],sm=6)
 
 page_1 = dbc.Container([
@@ -192,16 +183,18 @@ page_2 = dbc.Container([
 page_3 = dbc.Container([
                         dbc.Row([dbc.Col(navbar, sm=12)]),
                         html.Hr(),
+                        dbc.Row(dbc.Col(dbc.Card(dropdown1, className='pb-4 ps-5 pe-5'))),
                         dbc.Row(
                             [
                             dbc.Col(
-                                dbc.Row([
+                                dbc.Card(dbc.Row([
                                     inf1,
                                     inf2
-                                ]), sm=12
+                                ]))
+                                , sm=12
                                 
                             )
-                            ])
+                            ], className='pt-4')
                         
 ])
 
@@ -235,12 +228,13 @@ app.layout = html.Div([
 )
 def display_grafico(seleccion_score):
     
+    
     if len(seleccion_score) == 1:
-            df_scores['score_cat'] = df_scores[seleccion_score[0]].astype(str) 
+            df_scores['score_cat'] = df_scores[seleccion_score[0]].astype(str).map(escala_dict)
             fig = px.choropleth(df_scores, geojson=geojson, color='score_cat',
                                 locations="BARRIO", featureidkey="properties.BARRIO",
-                                projection="mercator", color_discrete_sequence= ['#7AC45C', '#AEEB5A','#73D2BF','#FC5845', '#C40186']
-                                ,category_orders={'score_cat':['5','4','3','2','1']}, labels = {'score_cat': 'Ind. Resultado'}, hover_data=data
+                                projection="mercator", color_discrete_sequence= ['#4541bf','#636bc7','#8195d0','#9fc0d8', '#bdeae1']
+                                ,category_orders={'score_cat':escala}, labels = {'score_cat': 'Ind. Resultado'}, hover_data=data
                                )
             fig.update_geos(fitbounds="locations", visible=False)
             fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
@@ -248,12 +242,11 @@ def display_grafico(seleccion_score):
     elif len(seleccion_score) > 1:
             df_dinamico = df_scores.loc[:, data_mult+seleccion_score]
             df_dinamico['suma_scores'] = df_dinamico[seleccion_score].sum(axis = 1, numeric_only=True)
-            df_dinamico['score_resultado'] = pd.qcut(df_dinamico['suma_scores'], q = 4, labels=['1','2','3','4'])
-     
+            df_dinamico['score_resultado'] = pd.qcut(df_dinamico['suma_scores'], q = 4, labels=['1','2','3','4']).map(escala_dict)
             fig = px.choropleth(df_dinamico, geojson=geojson, color=df_dinamico.score_resultado,
                                 locations="BARRIO", featureidkey="properties.BARRIO",
-                                projection="mercator", color_discrete_sequence= ['#7AC45C', '#AEEB5A','#73D2BF', '#C40186'],
-                                category_orders={'score_resultado':['4','3','2','1']}, labels = {'score_resultado':'Ind. Resultado'}, hover_data=data 
+                                projection="mercator", color_discrete_sequence= ['#4541bf','#636bc7','#8195d0','#9fc0d8', '#bdeae1'],
+                                category_orders={'score_resultado':escala}, labels = {'score_resultado':'Ind. Resultado'}, hover_data=data 
                                 )
             fig.update_geos(fitbounds="locations", visible=False)
             fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
@@ -263,18 +256,18 @@ def display_grafico(seleccion_score):
 
 @app.callback(
     Output('card', 'children'),
-    Input('indicador', 'value')
+    Input('indicador', 'value'),
 )
 def sliders(indicador):
   if len(indicador) > 0:
-    labels = [dbc.Label(id=i, children=i.split('_')[1].capitalize()) for i in indicador]
-    sliders = [dcc.RangeSlider(id={'type':'my-slider','index':i}, min=1, max=5, step=1, value=[1,2], marks={1:'Muy Bajo', 2:'Bajo',3:'Normal',4:'Alto',5:'Muy Alto'}, className='ml-3 mr-3',persistence=True) for i in indicador]
-    combined = []
+    labels = [dbc.Label(id=i, children=score_labels_inv.get(i)) for i in indicador]
+    sliders = [dcc.RangeSlider(id={'type':'my-slider','index':i}, min=1, max=5, step=1, value=[1,2], marks={1:'Muy Bajo', 2:'Bajo',3:'Normal',4:'Alto',5:'Muy Alto'}, className='ml-3 mr-3 pt-1',persistence=True) for i in indicador]
+    combined = [titulo]
     for i in range(len(labels)):
       combined.append(labels[i])
       combined.append(sliders[i])
   else:
-    combined = []
+    combined = [titulo]
 
   return combined
   
@@ -297,7 +290,7 @@ def display(ids, values):
 
     fig = px.choropleth(df_scores, geojson=geojson, color='Resultado',
                       locations="BARRIO", featureidkey="properties.BARRIO",
-                      projection="mercator", hover_data=data, color_discrete_map={'Cumple Requisitos': '#245dd6', 'No Cumple Requisitos': '#849dd1'}
+                      projection="mercator", hover_data=data, color_discrete_map={'Cumple Requisitos': '#4541bf', 'No Cumple Requisitos': '#bdeae1'}
                     )
     fig.update_geos(fitbounds="locations", visible=False)
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
@@ -308,31 +301,57 @@ def display(ids, values):
 
 @app.callback(
     Output('fig3', 'figure'),
-    Input('dropdown-1', 'value')
+    Input('dropdown-1', 'value'),
+    Input('barrio', 'value')
 )
-def polar(val1):
-  if val1 is not None:
-    df_drop = df_scores.loc[df_scores.BARRIO == (val1)][score_labels_inv.keys()].transpose().reset_index()
-    df_drop.columns = ["label","valor"]
-    df_drop["label"] = [score_labels_inv.get(i) for i in df_drop["label"]]
-    fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label,width=500,line_close=True)
-  else:
-    fig={}
-  return fig
+def lineplot(tema, barrio):
+    df_b = df_scores
+    df_a = df_scores[['BARRIO', tema]].sort_values(tema, ascending=False).reset_index(drop=True)[['BARRIO']]
+    df_a['ranking'] = [f'Posición: {i+1}'for i in df_a.index]
+    df_b = df_b.merge(df_a, how='left', on='BARRIO')
+    colores = [("#57F9E2" if i == barrio else '#FC5845')  for i in df_b["BARRIO"] ]
+    anchos  = [(10 if i == barrio else 5) for i in df_b["BARRIO"] ]
+    
+    fig = go.Figure(data=[go.Scatter(y=df_b[tema], x=df_b["BARRIO"],                                  
+                                 marker_color=colores,
+                                 marker_opacity=1,
+                                 marker_size=anchos,
+                                 marker_line_color=colores,
+                                 mode='lines+markers',
+                                 text= df_b.ranking,
+                                 line=dict(color="#FC5845")
+                                 )])
+    fig.update_xaxes(showticklabels=False,title_text = "Barrio")
+    fig.update_yaxes(showticklabels=False,title_text = data_labels.get(tema))
+    fig.update_layout(title={
+        'text': f'El barrio resaltado es {barrio.title()}',
+        'y':0.9,
+        'x':0.5,
+        'xanchor': 'center',
+        'yanchor': 'top'})
+    return fig
+
 
 @app.callback(
     Output('fig4', 'figure'),
-    Input('dropdown-2','value')
+    Input('dropdown-1','value'),
 )
 def display(tema):
     dfl = df_scores.nlargest(3,tema)[["BARRIO",tema]].sort_values(tema, ascending=False)
     dfs = df_scores.nsmallest(3,tema)[["BARRIO",tema]].sort_values(tema, ascending=False)
     fig = go.Figure(
         data = [
-        go.Bar(name="Lo mas",   x=dfl["BARRIO"], y=dfl[tema]),
-        go.Bar(name="Los menos",x=dfs["BARRIO"], y=dfs[tema])],
-        layout=go.Layout(title=data_labels[tema])
+        go.Bar(name="Lo más",   x=dfl["BARRIO"], y=dfl[tema], marker_color='#7AC45C'),
+        go.Bar(name="Los menos",x=dfs["BARRIO"], y=dfs[tema], marker_color='#C40186')],
     )
+    fig.update_xaxes(title_text = "")
+    fig.update_yaxes(showticklabels=False,title_text = data_labels.get(tema))
+    fig.update_layout(title={
+        'text': "Los más y los menos",
+        'y':0.9,
+        'x':0.5,
+        'xanchor': 'center',
+        'yanchor': 'top'})
     return fig
 
 @app.callback(
@@ -356,7 +375,7 @@ def multiple_polar(val1,val2):
     ], axis=0).reset_index()
     
     df_drop["label"] = [score_labels_inv.get(i) for i in df_drop["label"]]
-    fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label, color=df_drop.Barrio, width=500,line_close=True)
+    fig = px.line_polar(df_drop,r=df_drop.valor, theta=df_drop.label, color=df_drop.Barrio, width=500,line_close=True, color_discrete_sequence=['#7AC45C', '#C40186'])
   else:
     fig={}
   return fig
