@@ -120,13 +120,19 @@ checklist = dbc.Card([
 
 dropdown1 = html.Div([
                         dbc.Row(dbc.Col(html.H5('Conocé los datos', className='pt-3 text-center', style={'color':'#0E4666'}))),
-                        dbc.Row([dbc.Col(
-                            dcc.Dropdown(id='dropdown-1', options=[{'value':i,'label':data_labels.get(i)} for i in data_labels], 
-                                         value='densidad_poblacion',placeholder="Seleccionar indicador", clearable=False,style={'color':'#0E4666','font-size':'18px'})
-                        ),
-                                 dbc.Col(
+                        dbc.Row([
+                            dbc.Col(
                                     dcc.Dropdown(id='barrio', clearable=False, options=[{'value':i,'label':i.title()} for i in df_scores.BARRIO], style={'color':'#0E4666'}, value='PALERMO'),sm=6
-                                )], className='pt-3')
+                                ),
+                            dbc.Col(
+                            dcc.Dropdown(id='dropdown-1', options=[{'value':i,'label':data_labels.get(i)} for i in data_labels], 
+                                         value='densidad_poblacion',placeholder="Seleccionar indicador", clearable=False,style={'color':'#0E4666','font-size':'18px'}),sm=6
+                        )   
+                            
+                            
+                            ], className='pt-3'),
+                            
+                                 
               ])
 
 barrios = dbc.Card([
@@ -321,7 +327,7 @@ def lineplot(tema, barrio):
                                  text= df_b.ranking,
                                  line=dict(color="#FC5845")
                                  )])
-    fig.update_xaxes(showticklabels=False,title_text = "Barrio")
+    fig.update_xaxes(showticklabels=False,title_text = "Barrios")
     fig.update_yaxes(showticklabels=False,title_text = data_labels.get(tema))
     fig.update_layout(title={
         'text': f'El barrio resaltado es {barrio.title()}',
